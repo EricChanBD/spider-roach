@@ -31,37 +31,130 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+        <h1>
+<a name="%E5%A3%B0%E6%98%8E" class="anchor" href="#%E5%A3%B0%E6%98%8E"><span class="octicon octicon-link"></span></a>声明</h1>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>本人自知精力与能力有限，欢迎志同道合之士送上您宝贵的建议与Patch!</p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+<h1>
+<a name="%E5%85%B3%E4%BA%8E" class="anchor" href="#%E5%85%B3%E4%BA%8E"><span class="octicon octicon-link"></span></a>关于</h1>
+
+<p>一个分布式定向抓取集群的简单实现。</p>
+
+<p>Reference:
+    程序架构参考淘宝官博：www.searchtb.com/2011/07/快速构建实时抓取集群.html</p>
+
+<h2>
+<a name="%E7%9B%AE%E5%89%8D%E5%AE%9E%E7%8E%B0%E5%8A%9F%E8%83%BD" class="anchor" href="#%E7%9B%AE%E5%89%8D%E5%AE%9E%E7%8E%B0%E5%8A%9F%E8%83%BD"><span class="octicon octicon-link"></span></a>目前实现功能</h2>
+
+<ol>
+<li>多线程下载,线程数可配置。</li>
+<li>无需修改代码，按照规则添加配置就可以完成页面抽取、入库。</li>
+<li>利用Redis的list作为抓取队列，zset作为已抓取集合。</li>
+<li>支持分布式部署多个爬虫，Redis作为核心，mysql为存储,当然redis/mysql自身拥有各自的扩展方案。</li>
+</ol><h2>
+<a name="todo-list" class="anchor" href="#todo-list"><span class="octicon octicon-link"></span></a>TODO List</h2>
+
+<ol>
+<li>KISS: Keep it simple &amp; stupid!</li>
+<li>Supports cookies,and authentication.</li>
+<li>Write information into files (using protobuf??).</li>
+</ol><h1>
+<a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>INSTALL</h1>
+
+<p>确认安装Python2.7及依赖库: </p>
+
+<pre><code>    MySQLdb: http://sourceforge.net/projects/mysql-python/
+
+    redis: https://pypi.python.org/pypi/redis/
+
+    lxml: http://lxml.de/
 </code></pre>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>下载源码包:</p>
 
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<pre><code>    git clone https://github.com/agathewiky/spider-roach.git
+</code></pre>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<h1>
+<a name="how" class="anchor" href="#how"><span class="octicon octicon-link"></span></a>How?</h1>
 
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+<h2>
+<a name="schedulerpy-" class="anchor" href="#schedulerpy-"><span class="octicon octicon-link"></span></a>scheduler.py </h2>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<p>定义自己的爬虫,实现爬虫的调度算法，并将pipeline中负责解析的类注册到爬虫中;
+继承BaseSpider基类即可实现一个自己的爬虫，然后重写 Rules函数，定义自己的爬行策略。</p>
 
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+<p>:: </p>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<pre><code>class spider_name(BaseSpider):
+    def Rules(self):
+        #linkbase
+        linkbase = getRedis()
+        url_list = DQueue(linkbase,'url_list')
+        url_set = Record(linkbase, 'crawled_set')
+        base.url_maps = get_Maps('./maps.cfg')
+        list = {
+            'url':url_list,
+            'url_set':url_set,
+        }
+        self.AddRules(list, 'Parse_url', 'url', 10)
 
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+    def scheduling(self):
+        """重写scheduling,实现自己的调度策略"""
+        start_url = 'http://venue.damai.cn/search.aspx'
+        url_list.push(start_url)
+        while 1:
+            #do something
+            time.sleep(5)
+</code></pre>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<h2>
+<a name="mapscfg" class="anchor" href="#mapscfg"><span class="octicon octicon-link"></span></a>maps.cfg</h2>
+
+<p>配置待抓取页面相应的抽取规则
+详细例子参见maps.cfg</p>
+
+<p>::</p>
+
+<pre><code>{
+    "http://venue.damai.cn/search.aspx":{
+        "info":"抓取XX网场馆列表页页",
+        "pre_url":"http://venue.damai.cn",#抽取出的link添加默认前缀
+        "link_xpath":[
+            "//div[@class='pagination']/a[@class='next']/@href", #下一页
+            "//span[@class='type']/h3/a/@href", #详情页
+            ],
+     },
+    "http://venue.damai.cn/venue":{
+        "info":"抓取XX网场馆详情页",
+        "table":"pastime", #mysql表名
+        "page_xpath":{
+            "name":"//div[@class='site_guide']/a[3]/text()", #与mysql表字段名必须保持一致
+            "image":"//div[@class='venueDetal']/p/img[@class='img']/@src",
+            "detail":"//div[@class='info']/div/text()",
+            }
+     },
+}
+</code></pre>
+
+<h2>
+<a name="settingspy" class="anchor" href="#settingspy"><span class="octicon octicon-link"></span></a>settings.py</h2>
+
+<p>配置Redis,mysql的连接参数
+配置maps.cfg路径位置</p>
+
+<h1>
+<a name="run" class="anchor" href="#run"><span class="octicon octicon-link"></span></a>RUN</h1>
+
+<p>首先确认redis和mysql服务是否已启动并可用，然后执行：</p>
+
+<p>::</p>
+
+<pre><code>./crawl spider_name
+options:
+    -d ./logs 可将输出写入指定文件夹的日志中
+</code></pre>
       </section>
     </div>
 
